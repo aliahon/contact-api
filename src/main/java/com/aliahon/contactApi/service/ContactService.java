@@ -9,6 +9,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 @Service
 @Slf4j
@@ -32,4 +43,34 @@ public class ContactService {
     public void deleteContact(String id){
         contactRepo.deleteById(id);
     }
+
+    public String uploadPhotos(String id, MultipartFile file){
+        Contact contact =getContact(id);
+        String photoUrl= imgFunction.apply(id,file);
+        contact.setImgUrl(photoUrl);
+        contactRepo.save(contact);
+        return photoUrl;
+    }
+
+    private final Function<String, String> fileExtention = filename -> Optional
+            .of(filename).
+            filter(name-> name.contains("."))
+            .map(name->"."+name.substring(filename.indexOf(".")+1))
+            .orElse(".png");
+
+    private final BiFunction<String, MultipartFile,String> imgFunction=(id, img)->{
+        String filename = id+fileExtention.apply(img.getOriginalFilename());
+        try {
+            Path path = Paths.get("").toAbsolutePath().normalize();
+            if(!Files.exists(path)){Files.createDirectories(path);}
+            Files.copy(img.getInputStream(), path
+                    .resolve(filename), REPLACE_EXISTING);
+
+            return ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .path("/contact/img/"+filename).toUriString();
+        }catch (Exception e){
+            throw new RuntimeException("Unable to save image!");
+        }
+    };
 }
