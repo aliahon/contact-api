@@ -19,10 +19,10 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static com.aliahon.contactApi.constant.Constant.PHOTO_DIRECTORY;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 @Service
-@Slf4j
 @Transactional(rollbackOn = Exception.class)
 @RequiredArgsConstructor
 public class ContactService {
@@ -44,7 +44,7 @@ public class ContactService {
         contactRepo.deleteById(id);
     }
 
-    public String uploadPhotos(String id, MultipartFile file){
+    public String uploadPhoto(String id, MultipartFile file){
         Contact contact =getContact(id);
         String photoUrl= imgFunction.apply(id,file);
         contact.setImgUrl(photoUrl);
@@ -61,7 +61,7 @@ public class ContactService {
     private final BiFunction<String, MultipartFile,String> imgFunction=(id, img)->{
         String filename = id+fileExtention.apply(img.getOriginalFilename());
         try {
-            Path path = Paths.get("").toAbsolutePath().normalize();
+            Path path = Paths.get(PHOTO_DIRECTORY).toAbsolutePath().normalize();
             if(!Files.exists(path)){Files.createDirectories(path);}
             Files.copy(img.getInputStream(), path
                     .resolve(filename), REPLACE_EXISTING);
